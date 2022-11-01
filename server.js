@@ -10,13 +10,6 @@ const session = require('express-session');
 
 const app = express();
 
-app.engine('hbs', hbs({ extname: 'hbs', layoutsDir: './layouts', defaultLayout: 'main' }));
-app.set('view engine', '.hbs');
-
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname, '/public')));
 passport.use(new GoogleStrategy({
   clientID: "515479252272-96th68jc6rn8lh5na1lmp9cjduskq7t3.apps.googleusercontent.com",
   clientSecret: "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",
@@ -25,9 +18,33 @@ passport.use(new GoogleStrategy({
 done(null, profile);
 }));
 
+// serialize user when saving to session
+passport.serializeUser((user, serialize) => {
+  serialize(null, user);
+});
+
+// deserialize user when reading from session
+passport.deserializeUser((obj, deserialize) => {
+  deserialize(null, obj);
+});
+
+app.engine('hbs', hbs({ extname: 'hbs', layoutsDir: './layouts', defaultLayout: 'main' }));
+app.set('view engine', '.hbs');
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, '/public')));
+app.use(session({ secret: 'anything' }));
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.get('/', (req, res) => {
   res.render('index');
 });
+
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['email', 'profile'] }));
 
 app.get('/user/logged', (req, res) => {
   res.render('logged');
